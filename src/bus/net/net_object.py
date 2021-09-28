@@ -2,27 +2,19 @@ from socket import socket, AF_INET, SOCK_STREAM
 from ipaddress import ip_address
 
 
-class Endpoint:
+class NetObject:
     def __init__(self, ip, port):
         self.socket = socket(AF_INET, SOCK_STREAM)
 
         assert type(port) == int, "Port must be number"
 
         try:
+            assert type(ip) == str, "IP address must be string"
             ip_address(ip)
+            print("Guac")
 
-        except ValueError:
+        except (ValueError, AssertionError):
             raise ValueError("Invalid IP address")
 
         self.ip = ip
         self.port = port
-
-    # Sends message of bytes to endpoint
-
-    def send(self, sock, message):
-        sock.send(message)
-
-    def receive(self, sock):
-        message = sock.recv(1024)
-
-        return message

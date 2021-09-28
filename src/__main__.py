@@ -1,5 +1,9 @@
+from bus.net.server.host import Host
+
+
 def main():
-    pass
+    h = Host("127.0.0.1", 7092)
+    h.run()
 
 
 if __name__ == "__main__":
