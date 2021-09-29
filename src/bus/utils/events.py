@@ -15,6 +15,9 @@ class Event:
 
         self._waiters = []
 
+    def connect(self, fn):
+        pass
+
     def wait(self):
         w = waiter()
 
