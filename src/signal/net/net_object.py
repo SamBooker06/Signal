@@ -11,7 +11,6 @@ class NetObject:
         try:
             assert type(ip) == str, "IP address must be string"
             ip_address(ip)
-            print("Guac")
 
         except (ValueError, AssertionError):
             raise ValueError("Invalid IP address")

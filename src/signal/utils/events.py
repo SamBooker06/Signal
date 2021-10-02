@@ -6,6 +6,9 @@ class Event:
         self._callbacks = []
         self._waiters = []
 
+    def __call__(self, fn):
+        self.connect(fn)
+
     def fire(self, *args):
         for callback in self._callbacks:
             callback(*args)
@@ -16,7 +19,7 @@ class Event:
         self._waiters = []
 
     def connect(self, fn):
-        pass
+        self._callbacks.append(fn)
 
     def wait(self):
         w = waiter()
