@@ -1,61 +1,39 @@
-from signal import Host, Client, Packet
-
-
-def create_client(ip, port):
-    client = Client(ip, port)
-
-    return client
-
-
-def create_server(ip, port):
-    server = Host(ip, port)
-
-    return server
+from bus import Host, Client, Packet
+from time import sleep as wait
 
 
 def main():
-    ip, port = "127.0.0.1", 7092
+    h = Host(Host.get_machine_info(), 7092)
+    names = {}
 
-    if input("Create server? y/n").lower() == "y":
-        server = create_server(ip, port)
+    @h.OnConnect
+    def handle_connect(conn):
+        print("Connected")
+        conn.send(Packet({"message": "Hello, World!", "author": "Joe"}))
 
-        @server.OnConnect
-        def handle_connection(conn):
-            @conn.OnMessage
-            def handle_message(msg):
-                if msg.headers["Request-Type"] == "message":
-                    username = msg.body["user"]
-                    body = msg.body["message"]
+        @conn.OnMessage
+        def handle_message(packet):
+            print("Received message")
 
-                    for other in server.get_connections():
-                        packet = Packet(
-                            {"username": username, "message": body}, request_type="echo")
+        @conn.OnMessageOfType("set-username")
+        def set_username(packet):
+            names[conn.UUID] = packet.body['username']
 
-                        other.send(packet)
+        print
 
-        server.run()
+    @h.OnDisconnect
+    def handle_disconnect(conn):
+        print("Disconnected")
 
-    else:
-        client = create_client(ip, port)
+    h.run()
 
-        username = input("Username")
+    c = Client(Host.get_machine_info(), 7092)
 
-        @client.OnMessage
-        def handle_message(msg):
-            if msg.headers["Request-Type"] == "echo":
-                username = msg.body["user"]
-                body = msg.body["message"]
+    @c.OnConnect
+    def handle_connect():
+        c.send(Packet({"username": "jog"}, request_type="set-username"))
 
-                print("{}) {}".format(username, body))
-
-        client.connect()
-        while True:
-            message = input("> ")
-
-            packet = Packet(
-                {"message": message, "user": username}, request_type="message")
-
-            client.send(packet)
+    c.connect()
 
 
 if __name__ == "__main__":

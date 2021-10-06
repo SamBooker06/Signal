@@ -1,6 +1,6 @@
 from ..endpoint import Endpoint
 from ..packet import Packet
-from bus.utils.events import Event
+from bus.utils.events import ConditionalEvent, Event
 
 from threading import Thread
 
@@ -11,6 +11,9 @@ class Client(Endpoint):
         self._listen_loop = Thread(target=self._loop, daemon=False)
 
         self.OnMessage = Event()
+        self.OnMessageOfType = ConditionalEvent(
+            lambda packet: packet.headers["Request-Type"])
+        self.OnConnect = Event()
         self.OnDisconnect = Event()
 
         super().__init__(ip, port)
@@ -18,8 +21,9 @@ class Client(Endpoint):
     def connect(self):
         try:
             self.socket.connect((self.ip, self.port))
-            self._listen_loop.start()
             self.connected = True
+            self._listen_loop.start()
+            self.OnConnect.fire()
 
         except ConnectionRefusedError:
             raise ConnectionRefusedError("Connection refused")
@@ -31,6 +35,7 @@ class Client(Endpoint):
                 decoded = Packet.decode(msg)
 
                 self.OnMessage.fire(decoded)
+                self.OnMessageOfType.fire(decoded)
 
             except (ConnectionAbortedError, ConnectionResetError):
                 self.OnDisconnect.fire()

@@ -6,8 +6,7 @@ class Packet:
     def __init__(self, body, *, code="OK", data_type="JSON", request_type="Update", **headers):
         assert type(data_type) == str, "Data-Type must be string"
         assert data_type.upper() in ("JSON", "BINARY", "PLAIN"), "Invalid Data-Type"
-        assert request_type.upper() in ["UPDATE", "HANDSHAKE",
-                                        "RETRIEVE"], "Invalid Request-Type"
+        assert type(request_type) == str, "Request-Type must be of type string"
 
         assert type(code) == str, "code must be string"
 
@@ -26,7 +25,7 @@ class Packet:
 
     def encode(self):
         # Encodes headers with updated k, v pairs
-        encoded_headers = b"\n".join(f"{k}: {v}".encode("utf-8") for k, v in
+        encoded_headers = b"\n".join("{}: {}".format(k, v).encode("utf-8") for k, v in
                                      self.headers.items()) + b"\n\n"
 
         encoded_body = bytes()
@@ -65,7 +64,7 @@ class Packet:
 
         data_type = header_dict.get("Data-Type", "Null").upper()
         code = header_dict.get("Code", "Null").upper()
-        request_type = header_dict.get("Request-Type", "Null").upper()
+        request_type = header_dict.get("Request-Type", "Null")
 
         if data_type == "JSON":
             body_data = loads(body.decode("utf-8"))

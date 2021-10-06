@@ -1,7 +1,8 @@
 from threading import Thread
 from bus.net.packet import Packet
-from bus.utils.events import Event
+from bus.utils.events import Event, ConditionalEvent
 from ..endpoint import Endpoint
+from uuid import uuid4
 
 
 class Connection(Endpoint):
@@ -12,7 +13,10 @@ class Connection(Endpoint):
         self._message_loop = Thread(target=self._loop, daemon=False)
 
         self.OnMessage = Event()
+        self.OnMessageOfType = ConditionalEvent(
+            lambda packet: packet.headers["Request-Type"])
         self.OnDisconnect = Event()
+        self.UUID = uuid4().hex
 
         super().__init__(ip, port)
 
@@ -33,6 +37,7 @@ class Connection(Endpoint):
                 msg = self.receive()
                 packet = Packet.decode(msg)
                 self.OnMessage.fire(packet)
+                self.OnMessageOfType.fire(packet)
 
             except (ConnectionAbortedError, ConnectionResetError):
                 self.OnDisconnect.fire()

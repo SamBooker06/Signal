@@ -1,5 +1,6 @@
 from ..net_object import NetObject
 from .connection import Connection
+from socket import gethostbyname, gethostname
 from threading import Thread
 from bus.utils.events import Event
 
@@ -18,11 +19,15 @@ class Host(NetObject):
     def run(self, backlog=8):
         self.socket.bind((self.ip, self.port))
         self.socket.listen(backlog)
-        self._loop.start()
         self.running = True
+        self._loop.start()
 
     def get_connections(self):
         return [conn for conn in self.connections.values()]
+
+    @staticmethod
+    def get_machine_info():
+        return gethostbyname(gethostname())
 
     def _loop(self):
         while self.running:
