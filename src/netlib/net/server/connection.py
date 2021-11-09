@@ -1,6 +1,6 @@
 from threading import Thread
-from bus.net.packet import Packet
-from bus.utils.events import Event, ConditionalEvent
+from netlib.net.packet import Packet
+from netlib.utils.events import Event, ConditionalEvent
 from ..endpoint import Endpoint
 from uuid import uuid4
 
@@ -30,7 +30,10 @@ class Connection(Endpoint):
         return super().receive(self.socket)
 
     def _loop(self):
-        self._running = True
+        handshake = self.receive()
+        self.send(Packet({
+            "handshake": "world"
+        }, request_type="__handshake"))
 
         while self._running:
             try:

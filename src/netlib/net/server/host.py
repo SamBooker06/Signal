@@ -2,7 +2,7 @@ from ..net_object import NetObject
 from .connection import Connection
 from socket import gethostbyname, gethostname
 from threading import Thread
-from bus.utils.events import Event
+from netlib.utils.events import Event
 
 
 class Host(NetObject):
@@ -15,12 +15,15 @@ class Host(NetObject):
 
         self.OnConnect = Event()
         self.OnDisconnect = Event()
+        self.OnRun = Event()
+        self.OnClose = Event()
 
     def run(self, backlog=8):
         self.socket.bind((self.ip, self.port))
         self.socket.listen(backlog)
         self.running = True
         self._loop.start()
+        self.OnRun.fire()
 
     def get_connections(self):
         return [conn for conn in self.connections.values()]
@@ -43,3 +46,5 @@ class Host(NetObject):
             def handle_disconnect():
                 self.OnDisconnect.fire(conn)
                 del self.connections[key]
+
+        self.OnClose.fire()

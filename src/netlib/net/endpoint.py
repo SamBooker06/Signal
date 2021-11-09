@@ -1,4 +1,4 @@
-from bus.utils.events import Event
+from netlib.utils.events import Event
 from .net_object import NetObject
 from .packet import Packet
 
