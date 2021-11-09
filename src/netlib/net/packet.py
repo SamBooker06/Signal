@@ -11,7 +11,7 @@ class Packet:
 
         Args:
             body (dict | str | bytes): The body data of the message.
-            code (str, optional): The status code of the message. Primarily intended for use by host. Defaults to "OK".
+            code (str, optional): The status code of the message. Primarily intended for use by server. Defaults to "OK".
             data_type (str, optional): The type of data being sent. Defaults to "JSON".
             request_type (str, optional): The type of request being sent. Defaults to "Update".
         """
@@ -63,7 +63,8 @@ class Packet:
 
     @staticmethod
     def decode(encoded_packet):
-        headers, encoded_body = encoded_packet.decode("utf-8").split("\n\n")
+        headers, encoded_body = encoded_packet.decode(
+            "utf-8").split("\n\n")
 
         body = b64decode(encoded_body)
         body_data = None

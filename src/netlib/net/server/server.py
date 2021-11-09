@@ -1,5 +1,7 @@
 from typing import List
 
+from netlib.net.packet import Packet
+
 from ..net_object import NetObject
 from .connection import Connection
 from socket import gethostbyname, gethostname
@@ -7,12 +9,12 @@ from threading import Thread
 from netlib.utils.events import Event
 
 
-class Host(NetObject):
-    """Host object used to manage clients
+class Server(NetObject):
+    """Server object used to manage clients
     """
 
     def __init__(self, ip: str, port: int) -> None:
-        """Host object used to manage clients
+        """Server object used to manage clients
 
         Args:
             ip (str): The ip of the host machine
@@ -50,6 +52,29 @@ class Host(NetObject):
         """
         return [conn for conn in self.connections.values()]
 
+    def send_to_all(self, packet: Packet) -> None:
+        """Send a packet to all active connection.
+
+        Args:
+            packet (Packet): The packet to send.
+        """
+
+        for conn in self.connections.values():
+            if conn.connected:
+                conn.send(packet)
+
+    def send_to_all_except(self, packet: Packet, *exclusions: List[Connection]) -> None:
+        """Send a packet to all active connections except those in exclusions.
+
+        Args:
+            packet (Packet): The packet to send.
+            exclusions (List<Connection>): The connections to exclude.
+        """
+
+        for conn in self.connections.values():
+            if conn not in exclusions and conn.connected:
+                conn.send(packet)
+
     @staticmethod
     def get_machine_info() -> str:
         """Returns the local machine's host name
@@ -72,6 +97,7 @@ class Host(NetObject):
             @conn.OnDisconnect
             def handle_disconnect():
                 self.OnDisconnect.fire(conn)
-                del self.connections[key]
+
+                conn.connected = False
 
         self.OnClose.fire()

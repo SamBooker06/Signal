@@ -6,14 +6,19 @@ from uuid import uuid4
 
 
 class Connection(Endpoint):
+    """Active connection representing a client
+    """
+
     def __init__(self, socket):
         ip, port = socket.getsockname()
 
         self._running = False
         self._message_loop = Thread(target=self._loop, daemon=False)
 
-        self.OnMessage = Event()
-        self.OnMessageOfType = ConditionalEvent(
+        self.connected = True
+
+        self.OnSignal = Event()
+        self.OnSignalOfType = ConditionalEvent(
             lambda packet: packet.headers["Request-Type"])
         self.OnDisconnect = Event()
         self.UUID = uuid4().hex
@@ -21,6 +26,11 @@ class Connection(Endpoint):
         super().__init__(ip, port)
 
         self.socket = socket
+
+        # Handshake and that
+        self.receive()
+        self._running = True
+        self._send_handshake()
         self._message_loop.start()
 
     def send(self, message: Packet) -> None:
@@ -30,25 +40,30 @@ class Connection(Endpoint):
             message (Packet): The packet to send
         """
 
-        return super().send(self.socket, message)
+        try:
+            super().send(self.socket, message)
+
+        except ConnectionError:
+            pass
 
     def receive(self):
         """Do not use. Internal use only
         """
         return super().receive(self.socket)
 
-    def _loop(self):
-        handshake = self.receive()
+    def _send_handshake(self):
         self.send(Packet({
             "handshake": "world"
         }, request_type="__handshake"))
 
+    def _loop(self):
         while self._running:
             try:
                 msg = self.receive()
                 packet = Packet.decode(msg)
-                self.OnMessage.fire(packet)
-                self.OnMessageOfType.fire(packet)
+
+                self.OnSignal.fire(packet)
+                self.OnSignalOfType.fire(packet)
 
             except (ConnectionAbortedError, ConnectionResetError):
                 self.OnDisconnect.fire()
