@@ -23,10 +23,18 @@ class Connection(Endpoint):
         self.socket = socket
         self._message_loop.start()
 
-    def send(self, message):
+    def send(self, message: Packet) -> None:
+        """Send a packet to the connected client
+
+        Args:
+            message (Packet): The packet to send
+        """
+
         return super().send(self.socket, message)
 
     def receive(self):
+        """Do not use. Internal use only
+        """
         return super().receive(self.socket)
 
     def _loop(self):

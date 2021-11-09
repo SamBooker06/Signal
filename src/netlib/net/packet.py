@@ -3,7 +3,18 @@ from json import dumps, loads
 
 
 class Packet:
-    def __init__(self, body, *, code="OK", data_type="JSON", request_type="Update", **headers):
+    """Data object used to send all information across signals.
+    """
+
+    def __init__(self, body: dict | str | bytes, *, code: str = "OK", data_type: str = "JSON", request_type: str = "Update", **headers):
+        """Data object used to send all information across signals.
+
+        Args:
+            body (dict | str | bytes): The body data of the message.
+            code (str, optional): The status code of the message. Primarily intended for use by host. Defaults to "OK".
+            data_type (str, optional): The type of data being sent. Defaults to "JSON".
+            request_type (str, optional): The type of request being sent. Defaults to "Update".
+        """
         assert type(data_type) == str, "Data-Type must be string"
         assert data_type.upper() in ("JSON", "BINARY", "PLAIN"), "Invalid Data-Type"
         assert type(request_type) == str, "Request-Type must be of type string"
@@ -23,7 +34,8 @@ class Packet:
         self.headers.update(headers)
         self.body = body
 
-    def encode(self):
+    def encode(self) -> bytes:
+
         # Encodes headers with updated k, v pairs
         encoded_headers = b"\n".join("{}: {}".format(k, v).encode("utf-8") for k, v in
                                      self.headers.items()) + b"\n\n"
