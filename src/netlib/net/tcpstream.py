@@ -14,12 +14,15 @@ class TCPStream:
 	def receive(self, socket: socket) -> Signal:
 		e_signal = b""
 		e_chunk = b""
+		looping = False
 
-		while b"\r" not in e_chunk:
+		while b"\r" not in e_chunk and len(e_chunk) <= 0 or not looping:
+			looping = True
 			e_chunk = socket.recv(self.BUFFER)
 
 			e_signal += e_chunk
 
-		signal = Signal.decode(e_signal)
+		signal = Signal.decode(e_signal.split(b"\r")[0])
 
 		return signal
+
