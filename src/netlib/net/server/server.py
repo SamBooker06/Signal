@@ -1,103 +1,69 @@
 from typing import List
 
-from netlib.net.packet import Packet
+from netlib.net.signal import Signal
 
-from ..net_object import NetObject
+from ...utils.parallel import Parallel
+from ...utils.events import Event
+from ..netobject import NetObject
 from .connection import Connection
-from socket import gethostbyname, gethostname
-from threading import Thread
-from netlib.utils.events import Event
-
 
 class Server(NetObject):
-    """Server object used to manage clients
-    """
+	@property
+	def connections(self) -> List[Connection]:
+		return [conn for conn in self._connections if conn.active]
 
-    def __init__(self, ip: str, port: int) -> None:
-        """Server object used to manage clients
+	def __init__(self, ip: str, port: int):
+		super().__init__(ip, port)
+		self.running = False
+		self._connections = []
 
-        Args:
-            ip (str): The ip of the host machine
-            port (int): The port to handle packets
-        """
+		self.OnRun = Event()
+		self.OnExit = Event()
+		self.OnConnection = Event()
+		self.OnDisconnection = Event()
 
-        super().__init__(ip, port)
+		self._event_loop = Parallel(self._loop)
 
-        self._loop = Thread(target=self._loop, daemon=False)
-        self.connections = {}
-        self.running = False
 
-        self.OnConnect = Event()
-        self.OnDisconnect = Event()
-        self.OnRun = Event()
-        self.OnClose = Event()
+	def _loop(self):
+		self.running = True
 
-    def run(self, backlog: int = 8) -> None:
-        """Used to run event loop and listen to connections
+		while self.running:
+			try:
+				sock, _ = self.socket.accept()
 
-        Args:
-            backlog (int, optional): The max amount of connections to listen to. Defaults to 8.
-        """
-        self.socket.bind((self.ip, self.port))
-        self.socket.listen(backlog)
-        self.running = True
-        self._loop.start()
-        self.OnRun.fire()
+				conn = Connection(sock)
+				conn.OnDisconnect.connect(lambda: self.OnDisconnection.fire(conn))
 
-    def get_connections(self) -> List[Connection]:
-        """Returns a list of all active connections
+				self._connections.append(conn)
 
-        Returns:
-            List[Connection]: A list of all active connections
-        """
-        return [conn for conn in self.connections.values()]
+				self.OnConnection.fire(conn)
 
-    def send_to_all(self, packet: Packet) -> None:
-        """Send a packet to all active connection.
+			except ConnectionResetError:
+				pass
 
-        Args:
-            packet (Packet): The packet to send.
-        """
 
-        for conn in self.connections.values():
-            if conn.connected:
-                conn.send(packet)
+	def run(self, backlog: int=8) -> None:
+		self.socket.bind(self.info)
+		self.socket.listen(backlog)
 
-    def send_to_all_except(self, packet: Packet, *exclusions: List[Connection]) -> None:
-        """Send a packet to all active connections except those in exclusions.
+		self._event_loop.start()
+		self.OnRun.fire()
 
-        Args:
-            packet (Packet): The packet to send.
-            exclusions (List<Connection>): The connections to exclude.
-        """
 
-        for conn in self.connections.values():
-            if conn not in exclusions and conn.connected:
-                conn.send(packet)
+	def send_to_all(self, signal: Signal) -> None:
+		for conn in self.connections:
+			conn.send(signal)
 
-    @staticmethod
-    def get_machine_info() -> str:
-        """Returns the local machine's host name
+	def sent_to_all_except(self, signal: Signal, *blacklist: List[Connection]) -> None:
+		for conn in self.connections:
+			if conn not in blacklist:
+				conn.send(signal)
 
-        Returns:
-            str: The local machine's host name
-        """
-        return gethostbyname(gethostname())
 
-    def _loop(self):
-        while self.running:
-            sock, info = self.socket.accept()
+	def exit(self) -> None:
+		self.running = False
+		self._event_loop.cancel()
+		self.socket.close()
 
-            conn = Connection(sock)
-            key = "{}:{}".format(*info)
-
-            self.OnConnect.fire(conn)
-            self.connections[key] = conn
-
-            @conn.OnDisconnect
-            def handle_disconnect():
-                self.OnDisconnect.fire(conn)
-
-                conn.connected = False
-
-        self.OnClose.fire()
+		self.OnExit.fire()

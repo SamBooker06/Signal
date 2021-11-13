@@ -1,70 +1,53 @@
-from threading import Thread
-from netlib.net.packet import Packet
-from netlib.utils.events import Event, ConditionalEvent
-from ..endpoint import Endpoint
+from socket import socket
 from uuid import uuid4
 
+from ...utils.events import ConditionalEvent, Event
+from ...utils.parallel import Parallel
+from ..tcpstream import TCPStream
+from ..signal import Signal
 
-class Connection(Endpoint):
-    """Active connection representing a client
-    """
+class Connection(TCPStream):
+	def __init__(self, socket: socket):
+		self.OnSignal = ConditionalEvent(lambda s: [s.route, "/"], default="/")
+		self.OnDisconnect = Event()
 
-    def __init__(self, socket):
-        ip, port = socket.getsockname()
+		self.socket = socket
+		self.info = "{}".format(*socket.getsockname())
+		self.active = True
 
-        self._running = False
-        self._message_loop = Thread(target=self._loop, daemon=False)
+		self.UUID = uuid4()
 
-        self.connected = True
+		self._event_loop = Parallel(self._loop)
+		self._event_loop.start()
 
-        self.OnSignal = Event()
-        self.OnSignalOfType = ConditionalEvent(
-            lambda packet: packet.headers["Request-Type"])
-        self.OnDisconnect = Event()
-        self.UUID = uuid4().hex
+	def send(self, signal: Signal) -> bool:
+		success = False
 
-        super().__init__(ip, port)
+		try:
+			super().send(self.socket, signal)
 
-        self.socket = socket
+			success = True
 
-        # Handshake and that
-        self.receive()
-        self._running = True
-        self._send_handshake()
-        self._message_loop.start()
+		finally:
+			return success
 
-    def send(self, message: Packet) -> None:
-        """Send a packet to the connected client
+	def disconnect(self) -> None:
+		disc_signal = Signal({}, "/__disconnect")
 
-        Args:
-            message (Packet): The packet to send
-        """
+		self.send(disc_signal)
+		self._event_loop.cancel()
+		self.active = False
+		self.socket.close()
 
-        try:
-            super().send(self.socket, message)
+	def _loop(self):
+		while self.active:
+			signal = self.receive(self.socket)
 
-        except ConnectionError:
-            pass
+			if signal.route == "/__disconnect":
+				self.active = False
 
-    def receive(self):
-        """Do not use. Internal use only
-        """
-        return super().receive(self.socket)
+			else:
+				self.OnSignal.fire(signal)
 
-    def _send_handshake(self):
-        self.send(Packet({
-            "handshake": "world"
-        }, request_type="__handshake"))
-
-    def _loop(self):
-        while self._running:
-            try:
-                msg = self.receive()
-                packet = Packet.decode(msg)
-
-                self.OnSignal.fire(packet)
-                self.OnSignalOfType.fire(packet)
-
-            except (ConnectionAbortedError, ConnectionResetError):
-                self.OnDisconnect.fire()
-                self._running = False
+		self.socket.close()
+		self.OnDisconnect.fire()
