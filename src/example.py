@@ -1,108 +1,80 @@
-from netlib import Server, Client, Packet
+from netlib import Server, Client, Signal
 from netlib.net.server.connection import Connection
 
+from time import sleep as wait
 
-PORT = 7777
+def setup_server(s: Server):
+	usernames = {}
 
+	@s.OnConnection
+	def handle_conn(conn: Connection):
+		@conn.OnSignal("/message")
+		def handle_message(signal: Signal):
+			content = signal.payload.content
+			username = usernames[conn.UUID]
 
-def setup_server(h: Server):
-    usernames = {}
+			s.sent_to_all_except(Signal({
+				"content": f"{username}) {content}"
+			}, "/message"), conn)
 
-    @h.OnConnect
-    def handle_connection(conn: Connection):
+		@conn.OnSignal("/username/set")
+		def set_username(signal: Signal):
+			username = signal.payload.username
 
-        @conn.OnSignalOfType("set-username")
-        def set_username(packet: Packet):
-            username = packet.body["username"]
-            usernames[conn.UUID] = username
-
-        @conn.OnSignalOfType("send-message")
-        def handle_messages(packet: Packet):
-            content = packet.body["content"]
-            username = usernames[conn.UUID]
-
-            message = Packet({
-                "content": content,
-                "username": username
-            }, request_type="message")
-
-            h.send_to_all_except(message, conn)
-
-        @conn.OnDisconnect
-        def handle_disconnect():
-            username = usernames[conn.UUID]
-
-            h.send_to_all_except(Packet({
-                "username": username
-            }, request_type="disconnect-message"))
+			usernames[conn.UUID] = username
 
 
 def setup_client(c: Client):
-    @c.OnSignalOfType("message")
-    def display_message(packet: Packet):
-        username = packet.body["username"]
-        content = packet.body["content"]
+	@c.OnSignal("/message")
+	def display_message(signal: Signal):
+		content = signal.payload.content
 
-        print(f"{username}) {content}")
+		print(content)
 
-    @c.OnSignalOfType("disconnect-message")
-    def display_disconnect(packet: Packet):
-        username = packet.body["username"]
+def send_message(c: Client, content: str):
+	c.send(Signal({
+		"content": content
+	}, "/message"))
 
-        print(f"[{username}] HAS DISCONNECTED")
-
-
-def chat_app():
-    ip = Server.get_machine_info()
-    port = PORT
-
-    h = Server(ip, port)
-
-    client_one = Client(ip, port)
-    client_two = Client(ip, port)
-
-    setup_server(h)
-    setup_client(client_one)
-    setup_client(client_two)
-
-    c1_username = "Jim"
-    c2_username = "Jam"
-
-    h.run()
-
-    client_one.connect()
-    client_two.connect()
-
-    # Set client usernames
-    client_one.send(Packet({
-        "username": c1_username
-    }, request_type="set-username"))
-
-    client_two.send(Packet({
-        "username": c2_username
-    }, request_type="set-username"))
-
-    # Conversation
-    client_one.send(Packet({
-        "content": "Hello. Is anyone here?"
-    }, request_type="send-message"))
-
-    client_two.send(Packet({
-        "content": "I'm here!"
-    }, request_type="send-message"))
-
-    client_one.disconnect()
-
-    client_two.send(Packet({
-        "content": ":("
-    }, request_type="send-message"))
-
-    client_two.disconnect()
-    # h.close()
+	wait(1)
 
 
-def main():
-    chat_app()
+host = Server("127.0.0.1", 7777)
+
+setup_server(host)
+
+host.run()
+
+c1 = Client("127.0.0.1", 7777)
+c2 = Client("127.0.0.1", 7777)
+
+setup_client(c1)
+setup_client(c2)
+
+c1.connect()
+c2.connect()
+
+c1.send(Signal({
+	"username": "Bob"
+}, "/username/set"))
+
+c2.send(Signal({
+	"username": "Alice"
+}, "/username/set"))
 
 
-main()
+send_message(c1, "Anyone here")
+send_message(c2, "I am!")
+
+c1.disconnect()
+
+wait(1)
+send_message(c2, ":(")
+
+wait(1)
+
+c2.disconnect()
+
+wait(2)
+
+host.exit()
