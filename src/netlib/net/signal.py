@@ -1,12 +1,12 @@
 from json import dumps, loads
 from base64 import b64encode, b64decode
 
-class Signal:
-	def __init__(self, payload: dict, route="/"):
-		assert type(payload) is dict, "Payload must be dictionary"
-		assert type(route) is str, "Route must be a string"
+from ..utils.idict import idict
 
-		assert "route" not in payload, "Invalid payload keys"
+class Signal:
+	def __init__(self, payload: dict | idict, route="/"):
+		assert isinstance(payload, dict), "Payload must be dictionary"
+		assert type(route) is str, "Route must be a string"
 
 		self.payload = payload
 		self.route = route
@@ -31,7 +31,7 @@ class Signal:
 
 		route = b64decode(e_route).decode("utf-8")
 		dump = b64decode(e_dump).decode("utf-8")
-		payload = loads(dump)
+		payload = idict(loads(dump))
 
 		signal = Signal(payload, route)
 
