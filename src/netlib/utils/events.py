@@ -62,23 +62,28 @@ class ConditionalEvent(Event):
     """Object used for event-based programming under certain conditions.
     """
 
-    def __init__(self, checker: FunctionType) -> None:
+    def __init__(self, checker: FunctionType, default=None) -> None:
         """Object used for event-based programming under certain conditions.
 
         Args:
             checker (FunctionType): Function to be called when the event is fired to check values are valid.
         """
+        self._default = default
         self._callbacks = {}
         self._waiters = {}
         self._conditioner = checker
         self._waiter_return = None
 
-    def __call__(self, condition: FunctionType):
+    def __call__(self, condition: FunctionType=None):
         """Connect a function to be called when the event is fired.
 
         Args:
             fn (function): The function to be called.
         """
+
+        if condition is None:
+            condition = self._default
+
         return self.connect(condition)
 
     def fire(self, *args: List[Any]) -> None:
@@ -87,21 +92,25 @@ class ConditionalEvent(Event):
         target_condition = self._conditioner(*args)
 
         for condition, callback in self._callbacks.items():
-            if condition == target_condition:
+            if condition in target_condition:
                 callback(*args)
 
         for condition, waiter in self._waiters:
-            if condition == target_condition:
+            if condition in target_condition:
                 self._waiter_return = args
                 waiter.set()
                 self._waiter_return = None
 
-    def connect(self, condition: Any) -> None:
+    def connect(self, condition: Any=None) -> None:
         """Connect a function to be called when the event is fired under a condition. Must be used as decorator.
 
         Args:
             condition (Any): Value that must be found as true in the checker to fire event.
         """
+
+        if condition is None:
+            condition = self._default
+
         def _handle_connect(fn: FunctionType):
             self._callbacks[condition] = fn
 
