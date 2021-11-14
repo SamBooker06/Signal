@@ -25,7 +25,7 @@ const config = {
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
           editUrl:
-            "https://github.com/suchasaltylemon/Signal/tree/master/docs/docs",
+            "https://github.com/suchasaltylemon/Signal/tree/master/docs/",
         },
         theme: {
           customCss: require.resolve("./src/css/custom.css"),
