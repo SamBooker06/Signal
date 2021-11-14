@@ -1,10 +1,10 @@
 from typing import List
-
-from netlib.net.signal import Signal
+from socket import gethostbyname, gethostname
 
 from ...utils.parallel import Parallel
 from ...utils.events import Event
 from ..netobject import NetObject
+from ..signal import Signal
 from .connection import Connection
 
 class Server(NetObject):
@@ -23,6 +23,11 @@ class Server(NetObject):
 		self.OnDisconnection = Event()
 
 		self._event_loop = Parallel(self._loop)
+
+
+	@staticmethod
+	def get_host_machine() -> str:
+		return gethostbyname(gethostname())
 
 
 	def _loop(self):
