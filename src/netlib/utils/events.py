@@ -1,20 +1,19 @@
 from threading import Event as Waiter
 from types import FunctionType
-from typing import Any, List
 
 
 class Event:
     """Object used for event-based programming
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Object used for event-based programming
         """
         self._callbacks = []
         self._waiters = []
         self._waiter_return = None
 
-    def __call__(self, fn: FunctionType) -> None:
+    def __call__(self, fn):
         """Connect a function to be called when the event is fired.
 
         Args:
@@ -22,7 +21,7 @@ class Event:
         """
         self.connect(fn)
 
-    def fire(self, *args: List[Any]) -> None:
+    def fire(self, *args):
         """Fire the event with any arguments.
         """
         for callback in self._callbacks:
@@ -34,7 +33,7 @@ class Event:
 
         self._waiters = []
 
-    def connect(self, fn: FunctionType) -> None:
+    def connect(self, fn):
         """Connect a function to be called when the event is fired.
 
         Args:
@@ -43,7 +42,7 @@ class Event:
 
         self._callbacks.append(fn)
 
-    def wait(self) -> Any:
+    def wait(self):
         """Stops current thread until event is fired.
 
         Returns:
@@ -62,7 +61,7 @@ class ConditionalEvent(Event):
     """Object used for event-based programming under certain conditions.
     """
 
-    def __init__(self, checker: FunctionType, default=None) -> None:
+    def __init__(self, checker: FunctionType, default=None):
         """Object used for event-based programming under certain conditions.
 
         Args:
@@ -74,7 +73,7 @@ class ConditionalEvent(Event):
         self._conditioner = checker
         self._waiter_return = None
 
-    def __call__(self, condition: FunctionType=None):
+    def __call__(self, condition=None):
         """Connect a function to be called when the event is fired.
 
         Args:
@@ -86,7 +85,7 @@ class ConditionalEvent(Event):
 
         return self.connect(condition)
 
-    def fire(self, *args: List[Any]) -> None:
+    def fire(self, *args):
         """Fire the event with any arguments.
         """
         target_condition = self._conditioner(*args)
@@ -101,7 +100,7 @@ class ConditionalEvent(Event):
                 waiter.set()
                 self._waiter_return = None
 
-    def connect(self, condition: Any=None) -> None:
+    def connect(self, condition=None):
         """Connect a function to be called when the event is fired under a condition. Must be used as decorator.
 
         Args:
@@ -118,7 +117,7 @@ class ConditionalEvent(Event):
 
         return _handle_connect
 
-    def wait(self, condition: Any) -> List[Any]:
+    def wait(self, condition):
         """Wait until the event is fired under a condition.
 
         Args:
