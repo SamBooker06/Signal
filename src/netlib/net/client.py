@@ -6,7 +6,7 @@ from ..utils.parallel import Parallel
 from ..utils.events import ConditionalEvent, Event
 
 class Client(TCPStream):
-	def __init__(self, ip: str, port: int):
+	def __init__(self, ip, port):
 		self.socket = socket(AF_INET, SOCK_STREAM)
 		self.active = False
 		self.info = (ip, port)
@@ -18,7 +18,7 @@ class Client(TCPStream):
 		self._event_loop = Parallel(self._loop)
 
 
-	def send(self, signal: Signal) -> bool:
+	def send(self, signal):
 		success = False
 
 		try:
@@ -29,7 +29,7 @@ class Client(TCPStream):
 			return success
 
 
-	def connect(self) -> None:
+	def connect(self):
 		self.socket.connect(self.info)
 		self.active = True
 		self._event_loop.start()
@@ -37,7 +37,7 @@ class Client(TCPStream):
 		self.OnConnect.fire()
 
 
-	def disconnect(self) -> None:
+	def disconnect(self):
 		self.send(Signal({}, "/__disconnect"))
 
 		self._event_loop.cancel()

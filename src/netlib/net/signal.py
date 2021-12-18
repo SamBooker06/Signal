@@ -4,7 +4,7 @@ from base64 import b64encode, b64decode
 from ..utils.idict import idict
 
 class Signal:
-	def __init__(self, payload: dict | idict, route="/"):
+	def __init__(self, payload, route="/"):
 		assert isinstance(payload, dict), "Payload must be dictionary"
 		assert type(route) is str, "Route must be a string"
 
@@ -24,7 +24,7 @@ class Signal:
 
 
 	@staticmethod
-	def decode(b64: bytes):
+	def decode(b64):
 		target = b64.split(b"\r")[0]
 
 		e_route, e_dump = target.split(b"--")

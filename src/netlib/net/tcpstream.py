@@ -6,12 +6,12 @@ from netlib.net.signal import Signal
 class TCPStream:
 	BUFFER = 1024
 
-	def send(self, socket: socket, signal: Signal) -> None:
+	def send(self, socket, signal):
 		e_signal = signal.encode()
 
 		socket.send(e_signal)
 
-	def receive(self, socket: socket) -> Signal:
+	def receive(self, socket):
 		e_signal = b""
 		e_chunk = b""
 		looping = False

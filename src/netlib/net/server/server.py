@@ -1,4 +1,3 @@
-from typing import List
 from socket import gethostbyname, gethostname
 
 from ...utils.parallel import Parallel
@@ -9,10 +8,10 @@ from .connection import Connection
 
 class Server(NetObject):
 	@property
-	def connections(self) -> List[Connection]:
+	def connections(self):
 		return [conn for conn in self._connections if conn.active]
 
-	def __init__(self, ip: str, port: int):
+	def __init__(self, ip, port):
 		super().__init__(ip, port)
 		self.running = False
 		self._connections = []
@@ -26,7 +25,7 @@ class Server(NetObject):
 
 
 	@staticmethod
-	def get_host_machine() -> str:
+	def get_host_machine():
 		return gethostbyname(gethostname())
 
 
@@ -48,7 +47,7 @@ class Server(NetObject):
 				pass
 
 
-	def run(self, backlog: int=8) -> None:
+	def run(self, backlog=8):
 		self.socket.bind(self.info)
 		self.socket.listen(backlog)
 
@@ -56,17 +55,17 @@ class Server(NetObject):
 		self.OnRun.fire()
 
 
-	def send_to_all(self, signal: Signal) -> None:
+	def send_to_all(self, signal):
 		for conn in self.connections:
 			conn.send(signal)
 
-	def sent_to_all_except(self, signal: Signal, *blacklist: List[Connection]) -> None:
+	def sent_to_all_except(self, signal, *blacklist):
 		for conn in self.connections:
 			if conn not in blacklist:
 				conn.send(signal)
 
 
-	def exit(self) -> None:
+	def exit(self):
 		self.running = False
 		self._event_loop.cancel()
 		self.socket.close()

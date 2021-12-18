@@ -7,7 +7,7 @@ from ..tcpstream import TCPStream
 from ..signal import Signal
 
 class Connection(TCPStream):
-	def __init__(self, socket: socket):
+	def __init__(self, socket):
 		self.OnSignal = ConditionalEvent(lambda s: [s.route, "/"], default="/")
 		self.OnDisconnect = Event()
 
@@ -20,7 +20,7 @@ class Connection(TCPStream):
 		self._event_loop = Parallel(self._loop)
 		self._event_loop.start()
 
-	def send(self, signal: Signal) -> bool:
+	def send(self, signal):
 		success = False
 
 		try:
@@ -31,7 +31,7 @@ class Connection(TCPStream):
 		finally:
 			return success
 
-	def disconnect(self) -> None:
+	def disconnect(self):
 		disc_signal = Signal({}, "/__disconnect")
 
 		self.send(disc_signal)
