@@ -61,7 +61,7 @@ class ConditionalEvent(Event):
     """Object used for event-based programming under certain conditions.
     """
 
-    def __init__(self, checker: FunctionType, default=None):
+    def __init__(self, checker, default=None):
         """Object used for event-based programming under certain conditions.
 
         Args:
